@@ -209,7 +209,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		Object sharedInstance = getSingleton(beanName);
 		//如果先前已经创建过单例Bean的实例，并且调用的getBean方法传入的参数为空
 		//则执行if里面的逻辑
-		//args之所以要求为空是因为如果有args，则需要赋值给bean实例的属性，因此无法直接返回
+		//args之所以要求为空 是因为如果有args 则需要赋值给bean实例的属性，因此无法直接返回
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
 				//如果Bean还在创建中，则说明是循环引用
@@ -222,6 +222,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 			// 如果是普通bean，直接返回，如果是FactoryBean，则返回他的getObject
+			// 前面已经从缓存中获取到bean了，这里为什么还要调用这个方法获取bean？
+			// 因为前面可能获取到的bean是FactoryBean 并不是我们真正需要的bean
+			// 这里调用这个方法 如果前面获取到的是工厂Bean 就调用getObject()方法 获取真正的bean
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 		//若scope为prototype或者单例模式但是缓存中还不存在bean
@@ -318,6 +321,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				if (mbd.isSingleton()) {
 					//这里使用了一个匿名内部类，创建Bean实例对象，并且注册给所依赖的对象
 					// 匿名内部类为ObjectFactory 主要实现了 ObjectFactory#getObject()方法的逻辑
+					// 这里先执行 getSingleton() 方法 后执行匿名内部类的方法 createBean();
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
 							return createBean(beanName, mbd, args);
@@ -1841,20 +1845,21 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
-		// 判断name是否以&开头
-		if (BeanFactoryUtils.isFactoryDereference(name)) {
+		// 判断是否为BeanFactory的引用，通过判断name是否以&开头来实现
+		if (BeanFactoryUtils.isFactoryDereference(name)) { // 以&开头
 			// 如果为null 直接返回
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
 			}
-			//如果name是以&开头的 但是不是FactoryBean，则直接抛出异常
+			//如果name是以&开头的 但是它不是FactoryBean，则直接抛出异常
 			if (!(beanInstance instanceof FactoryBean)) {
 				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
 			}
-			// 上一级方法传入的mbd为null
+			// 传入的mbd为null
 			if (mbd != null) {
 				mbd.isFactoryBean = true;
 			}
+			// 是FactoryBean 则返回
 			return beanInstance;
 		}
 
@@ -1865,15 +1870,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		if (!(beanInstance instanceof FactoryBean)) {
 			return beanInstance;
 		}
-		//FactoryBean创建出bean实例返回
+		// FactoryBean 创建出bean实例返回
 		Object object = null;
+		// 显然传入的mbd为null，走else流程
 		if (mbd != null) {
 			mbd.isFactoryBean = true;
 		}
 		else {
-			//单例模式下，FactoryBean仅会创建一个Bean实例，
-			// 因此需要优先从缓存获取
-			// factoryBeanObjectCache缓存FactoryBean先前已经创建出来的实例
+			// factoryBeanObjectCache 里面缓存的是先前已经创建出来的FactoryBean实例
 			object = getCachedObjectForFactoryBean(beanName);
 		}
 		if (object == null) {

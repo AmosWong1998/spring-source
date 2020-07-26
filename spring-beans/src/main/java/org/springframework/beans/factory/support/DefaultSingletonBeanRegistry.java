@@ -213,7 +213,6 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 					//如果获取到工厂实例
 					if (singletonFactory != null) {
-
 						//调用单例工厂的getObject方法返回对象实例
 						singletonObject = singletonFactory.getObject();
 						// 由于该Bean的属性还没有注入 因此先将实例放入二级缓存里
@@ -226,7 +225,6 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				}
 			}
 		}
-		// bean 不为null 直接返回
 		return singletonObject;
 	}
 
@@ -258,13 +256,15 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				}
 
 
-				beforeSingletonCreation(beanName);
+				// 单例开始创建之前，先把它加入到正在创建的Bean的Set集合中
+				beforeSingletonCreation(beanName); // <X>
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
 				if (recordSuppressedExceptions) {
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					// 调用ObjectFactory#getObject()方法去创建bean
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true; // 设置为true 方便后续一级缓存的添加
 				}
@@ -288,7 +288,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
-					// <X>
+					// <X> bean已经创建完成了，会将beanName从正在创建的列表中移除
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) { // 判断是否是新创建的单例，#beforeSingletonCreation() 里将该值设置为true
