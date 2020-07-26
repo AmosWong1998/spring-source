@@ -77,10 +77,11 @@ public abstract class BeanFactoryUtils {
 	public static String transformedBeanName(String name) {
 		Assert.notNull(name, "'name' must not be null");
 		// 先看看是否想要通过getBean获取FactoryBean本身，如果不是直接返回
+		// 普通bean直接返回
 		if (!name.startsWith(BeanFactory.FACTORY_BEAN_PREFIX)) {
 			return name;
 		}
-		//返回去掉&之后的beanName
+		//返回去掉 & 之后的beanName
 		return transformedBeanNameCache.computeIfAbsent(name, beanName -> {
 			do {
 				beanName = beanName.substring(BeanFactory.FACTORY_BEAN_PREFIX.length());

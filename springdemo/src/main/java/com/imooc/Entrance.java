@@ -4,6 +4,7 @@ import com.imooc.aspect.OutSide;
 import com.imooc.controller.HiController;
 import com.imooc.controller.WelcomeController;
 import com.imooc.entity.User;
+import com.imooc.factorybean.IFactoryBeanService;
 import com.imooc.introduction.LittleUniverse;
 import com.imooc.service.HelloService;
 import com.imooc.service.HiService;
@@ -78,8 +79,13 @@ public class Entrance {
         for (String beanDefinitionName : beanDefinitionNames) {
             System.out.println(beanDefinitionName);
         }
+
         WelcomeController welcomeController = (WelcomeController) applicationContext.getBean("welcomeController");
         welcomeController.handleRequest();
+
+        IFactoryBeanService beanService = applicationContext.getBean(IFactoryBeanService.class);
+        beanService.sayHello();
+
         User user5 = (User) applicationContext.getBean("user5");
         System.out.println("创建的对象：" + user5);
     }

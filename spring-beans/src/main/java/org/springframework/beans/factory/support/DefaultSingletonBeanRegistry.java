@@ -64,7 +64,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
 	/** Cache of singleton factories: bean name to ObjectFactory. */
-	//三级缓存：单例工厂的缓存，beanName->ObjectFactory，添加进去的时候实例还未具备属性
+	// 三级缓存：单例工厂的缓存，beanName->ObjectFactory，添加进去的时候实例还未具备属性
 	// 用于保存beanName和创建bean的工厂之间的关系map，单例Bean在创建之初过早的暴露出去的Factory，
 	// 为什么采用工厂方式，是因为有些Bean是需要被代理的，总不能把代理前的暴露出去那就毫无意义了
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
@@ -202,7 +202,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				// 如果从二级缓存中获取到bean 则直接返回。为什么要返回二级缓存中不完备的bean？是为了解决循环依赖
 				singletonObject = this.earlySingletonObjects.get(beanName);
 
-				//如果还没有获取到并且第二个参数为true，为true则表示bean允许被循环引用
+				// 如果还没有获取到并且第二个参数为true，为true则表示bean允许被循环引用
 				if (singletonObject == null && allowEarlyReference) {
 
 					//从三级缓存singletonFactories这个ObjectFactory实例的缓存里尝试获取创建此Bean的单例工厂实例

@@ -474,7 +474,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			// resolveBeforeInstantiation只是针对有自定义的targetSource，
 			// 因为自定义的targetSource不是spring的bean那么肯定不需要进行后续的一系列的实例化,初始化。
 			// 所以可以在resolveBeforeInstantiation直接进行proxy
-			// 执行某些类型的后置处理器操作
+			// 进行实例化前的步骤
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
 				return bean;
@@ -544,7 +544,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Allow post-processors to modify the merged bean definition.
-		//调用BeanDefinition属性合并完成后的BeanPostProcessor后置处理器
+		// 调用BeanDefinition属性合并完成后的BeanPostProcessor后置处理器
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {

@@ -215,8 +215,8 @@ public class SimpleAliasRegistry implements AliasRegistry {
 		// Handle aliasing...
 		String resolvedName;
 		do {
-			//根据别名获取真正的beanName，传入beanName就啥都获取不到
-			//为了防止别名的别名, 这种特殊情况, 递归查看是否还是别名，递归的最后一个名字肯定就是beanName了
+			// 根据别名获取真正的beanName，传入beanName就啥都获取不到
+			// 为了防止别名的别名, 这种特殊情况, 递归查看是否还是别名，递归的最后一个名字肯定就是beanName了
 			resolvedName = this.aliasMap.get(canonicalName);
 			if (resolvedName != null) {
 				canonicalName = resolvedName;
