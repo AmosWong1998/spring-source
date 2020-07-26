@@ -1,7 +1,6 @@
 package com.imooc;
 
 import com.imooc.aspect.OutSide;
-import com.imooc.controller.HelloController;
 import com.imooc.controller.HiController;
 import com.imooc.controller.WelcomeController;
 import com.imooc.entity.User;
@@ -11,7 +10,6 @@ import com.imooc.service.HiService;
 import com.imooc.service.WelcomeService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 @Configuration
@@ -36,7 +34,7 @@ public class Entrance {
 
     }
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         ApplicationContext annotationApplicationContext = new AnnotationConfigApplicationContext(Entrance.class);
         System.out.println("AOP--------------------------------------");
         HiService hiService = (HiService) annotationApplicationContext.getBean("hiServiceImpl");
@@ -74,5 +72,16 @@ public class Entrance {
 
     }
 
+    public static void main(String[] args) {
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(Entrance.class);
+        String[] beanDefinitionNames = applicationContext.getBeanDefinitionNames();
+        for (String beanDefinitionName : beanDefinitionNames) {
+            System.out.println(beanDefinitionName);
+        }
+        WelcomeController welcomeController = (WelcomeController) applicationContext.getBean("welcomeController");
+        welcomeController.handleRequest();
+        User user5 = (User) applicationContext.getBean("user5");
+        System.out.println("创建的对象：" + user5);
+    }
 
 }

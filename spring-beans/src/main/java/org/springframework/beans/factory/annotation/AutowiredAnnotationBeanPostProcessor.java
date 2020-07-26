@@ -16,38 +16,13 @@
 
 package org.springframework.beans.factory.annotation;
 
-import java.beans.PropertyDescriptor;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AccessibleObject;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyValues;
 import org.springframework.beans.TypeConverter;
-import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.BeanFactoryUtils;
-import org.springframework.beans.factory.InjectionPoint;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.UnsatisfiedDependencyException;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessorAdapter;
@@ -67,6 +42,12 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link org.springframework.beans.factory.config.BeanPostProcessor BeanPostProcessor}
@@ -241,10 +222,12 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 	@Override
 	public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
-		//该方法主要作用为: 收集Bean里面被@Autowired标签标记 或者 @Value 标记的成员变量, 方法实例
-		//然后将他们存入到缓存中
-		//为后续依赖注入提供准备
+		// 该方法主要作用为: 收集Bean里面被@Autowired标签标记 或者 @Value 标记的成员变量, 方法实例
+		// 然后将他们存入到缓存中
+		// 为后续依赖注入提供准备
+		// 寻找被注解标注的元数据
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+		// 将injectedElements中的属性全部保存到checkedElements
 		metadata.checkConfigMembers(beanDefinition);
 	}
 
@@ -450,22 +433,31 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		}
 	}
 
-
+	/**
+	 * 该方法扫描类中方法或者属性上的注解，
+	 * 把扫描到的方法或者属性封装到InjectionMetadata类中并且返回
+	 * @param beanName
+	 * @param clazz
+	 * @param pvs
+	 * @return
+	 */
 	private InjectionMetadata findAutowiringMetadata(String beanName, Class<?> clazz, @Nullable PropertyValues pvs) {
 		// Fall back to class name as cache key, for backwards compatibility with custom callers.
 		String cacheKey = (StringUtils.hasLength(beanName) ? beanName : clazz.getName());
 		// Quick check on the concurrent map first, with minimal locking.
 		//从容器中查找是否有给定类的autowire相关注解元信息
+		// 判断先前有没有创建过该bean的injectionMetadata对象
 		InjectionMetadata metadata = this.injectionMetadataCache.get(cacheKey);
 		if (InjectionMetadata.needsRefresh(metadata, clazz)) {
-			synchronized (this.injectionMetadataCache) {
+			synchronized (this.injectionMetadataCache) { // 双重锁检查机制
 				metadata = this.injectionMetadataCache.get(cacheKey);
 				if (InjectionMetadata.needsRefresh(metadata, clazz)) {
 					if (metadata != null) {
-						metadata.clear(pvs);
+						metadata.clear(pvs); // 清空容器
 					}
-					metadata = buildAutowiringMetadata(clazz);
-					//将得到的给定类autowire相关注解元信息存储在容器缓存中
+					metadata = buildAutowiringMetadata(clazz); // 重新创建InjectMetadata实例
+					// 将得到的给定类autowire相关注解元信息存储在容器缓存中
+					// 将上一步重新注册好的InjectMetadata实例 放入缓存中
 					this.injectionMetadataCache.put(cacheKey, metadata);
 				}
 			}
@@ -474,6 +466,8 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 	}
 	//解析给定类@Autowired相关注解元信息
 	private InjectionMetadata buildAutowiringMetadata(final Class<?> clazz) {
+		// 判断待扫描的类能不能成为候选类（有没有资格被扫描）
+		// 只要不是Spring的Ordered类，都返回true （比如JDK的类、用户自定义的类）
 		if (!AnnotationUtils.isCandidateClass(clazz, this.autowiredAnnotationTypes)) {
 			return InjectionMetadata.EMPTY;
 		}
@@ -488,14 +482,17 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
 				if (ann != null) {
+					// 判断该属性是否为静态属性
 					if (Modifier.isStatic(field.getModifiers())) {
+						// 抛出异常，静态的属性不支持注入！！
 						if (logger.isInfoEnabled()) {
 							logger.info("Autowired annotation is not supported on static fields: " + field);
 						}
 						return;
 					}
+					// 获取@Autowired中的required属性 看这个属性注入是否是必须的
 					boolean required = determineRequiredStatus(ann);
-					//将当前字段元信息封装，添加在返回的集合中
+					// 将当前字段元信息封装，添加在返回的集合中
 					currElements.add(new AutowiredFieldElement(field, required));
 				}
 			});
@@ -532,6 +529,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		}
 		while (targetClass != null && targetClass != Object.class);
 
+		// 将扫描到的属性/方法 封装到一个新的InjectMetadata对象中
 		return InjectionMetadata.forElements(elements, clazz);
 	}
 
@@ -540,6 +538,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		MergedAnnotations annotations = MergedAnnotations.from(ao);
 		for (Class<? extends Annotation> type : this.autowiredAnnotationTypes) {
 			MergedAnnotation<?> annotation = annotations.get(type);
+			// 调用isPresent方法 判断该属性是否被@Autiwred、@Value注解给标记
 			if (annotation.isPresent()) {
 				return annotation;
 			}

@@ -16,13 +16,6 @@
 
 package org.springframework.beans.factory.support;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedExceptionAction;
-
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -30,6 +23,13 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Simple object instantiation strategy for use in a BeanFactory.
@@ -61,8 +61,10 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
 		//如果Bean定义里面的方法没有被覆盖，则不需要CGLIB来重写
+		// 判断是否有look-up method / replaced-method 如果有进入else
 		if (!bd.hasMethodOverrides()) {
 			Constructor<?> constructorToUse;
+			// 同步代码块：获取class实例里的 无参构造函数
 			synchronized (bd.constructorArgumentLock) {
 				//获取对象的构造方法或工厂方法
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
@@ -92,6 +94,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 		}
 		else {
 			// Must generate CGLIB subclass.
+			// 使用cglib 重写bean原本的方法 CGLIB会给bean创建动态代理 然后返回包装好的动态代理
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}

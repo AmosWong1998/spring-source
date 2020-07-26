@@ -198,7 +198,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	@SuppressWarnings("unchecked")
 	protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredType,
 			@Nullable final Object[] args, boolean typeCheckOnly) throws BeansException {
-		//通过三种形式获取beanName
+		// 通过三种形式获取beanName
 		// 一个是原始的beanName，一个是加了&的，一个是别名
 		final String beanName = transformedBeanName(name);
 		Object bean;
@@ -1495,6 +1495,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			throws CannotLoadBeanClassException {
 
 		try {
+			// 注解可以直接获取到class
 			if (mbd.hasBeanClass()) {
 				return mbd.getBeanClass();
 			}
@@ -1503,6 +1504,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					doResolveBeanClass(mbd, typesToMatch), getAccessControlContext());
 			}
 			else {
+				// XML 需要解析出来class
 				return doResolveBeanClass(mbd, typesToMatch);
 			}
 		}
@@ -1839,7 +1841,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
+		// 判断name是否以&开头
 		if (BeanFactoryUtils.isFactoryDereference(name)) {
+			// 如果为null 直接返回
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
 			}
@@ -1847,6 +1851,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			if (!(beanInstance instanceof FactoryBean)) {
 				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
 			}
+			// 上一级方法传入的mbd为null
 			if (mbd != null) {
 				mbd.isFactoryBean = true;
 			}

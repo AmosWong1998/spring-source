@@ -16,14 +16,6 @@
 
 package org.springframework.beans.factory.support;
 
-import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-
 import org.springframework.beans.BeanMetadataAttributeAccessor;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -37,6 +29,10 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Constructor;
+import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * Base class for concrete, full-fledged {@link BeanDefinition} classes,
@@ -1103,13 +1099,17 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	}
 
 	/**
-	 * <bean id="myTestBean" class="io.spring.test.MyTestBean" >
+	 * 	<bean id="myTestBean" class="io.spring.test.MyTestBean" >
 	 *     <lookup-method name="getUserBean" bean="teacher"/>
 	 *     <replaced-method name="changedMethod" replacer="replacer"/>
-	 * </bean>
-	 *<bean id="teacher" class="io.spring.test.Teacher" />
-	 *<bean id="student" class="io.spring.test.Student" />
-	 *<bean id="replacer" class="io.spring.test.Replacer" />
+	 * 	</bean>
+	 *	<bean id="teacher" class="io.spring.test.Teacher" />
+	 *	<bean id="student" class="io.spring.test.Student" />
+	 *	<bean id="replacer" class="io.spring.test.Replacer" />
+	 *
+	 * 判断是否有lookup-method和replaced-method两个属性，
+	 * 如果有replaced-method 会去MyTestBean里面 判断有没有changedMethod这个方法
+	 * 如果有lookup-method 会去Teacher里面 判断有没有getUserBean这个方法
 	 *
 	 * Validate and prepare the method overrides defined for this bean.
 	 * Checks for existence of a method with the specified name.
@@ -1118,6 +1118,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	public void prepareMethodOverrides() throws BeanDefinitionValidationException {
 		// Check that lookup methods exist and determine their overloaded status.
 		if (hasMethodOverrides()) {
+			// 获取BeanDefinition里面的MethodOverrides属性，之前对BeanDefinition解析时，会
+			// 将look-up、replaced-method 两个属性封装到MethodOverrides属性里面
 			getMethodOverrides().getOverrides().forEach(this::prepareMethodOverride);
 		}
 	}
@@ -1138,7 +1140,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		}
 		else if (count == 1) {
 			// Mark override as not overloaded, to avoid the overhead of arg type checking.
-			//如果不存在重载，在使用 CGLIB 增强阶段就不需要进行校验了，
+			// 如果不存在重载，在使用 CGLIB 增强阶段就不需要进行校验了，
 			// 直接找到某个方法进行增强即可，否则在增强阶段还需要做特殊的处理
 			mo.setOverloaded(false);
 		}

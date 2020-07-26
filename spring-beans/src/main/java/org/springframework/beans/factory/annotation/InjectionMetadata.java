@@ -16,6 +16,14 @@
 
 package org.springframework.beans.factory.annotation;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.PropertyValues;
+import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.lang.Nullable;
+import org.springframework.util.ReflectionUtils;
+
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -25,15 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.springframework.beans.MutablePropertyValues;
-import org.springframework.beans.PropertyValues;
-import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.lang.Nullable;
-import org.springframework.util.ReflectionUtils;
 
 /**
  * Internal class for managing injection metadata.
@@ -71,7 +70,7 @@ public class InjectionMetadata {
 	// 当post-processor处理bean时，会解析bean Class的所有属性，
 	// 在解析时会判断属性上是否标有@Value或者@Autowired注解，
 	// 有就解析这个属性值，将解析后结果放入这里
-	// 保存了被注入元素的全量集合（包括Spirng处理的或者外部处理的）
+	// 保存了被注入元素的全量集合（包括Spring处理的或者外部处理的）
 	private final Collection<InjectedElement> injectedElements;
 	//和injectedElements一样，不过只保存了由Spring容器默认进行处理的属性或者方法
 	@Nullable
@@ -158,6 +157,8 @@ public class InjectionMetadata {
 	 * @return {@code true} indicating a refresh, {@code false} otherwise
 	 */
 	public static boolean needsRefresh(@Nullable InjectionMetadata metadata, Class<?> clazz) {
+		// 判断metadata是否为空值 或者 传入的class是否为同一个
+		// 如果不是同一个class 需要重新扫描
 		return (metadata == null || metadata.targetClass != clazz);
 	}
 

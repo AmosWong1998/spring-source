@@ -226,6 +226,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				}
 			}
 		}
+		// bean 不为null 直接返回
 		return singletonObject;
 	}
 
@@ -383,7 +384,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @see #isSingletonCurrentlyInCreation
 	 */
 	protected void beforeSingletonCreation(String beanName) {
-		//inCreationCheckExclusions 直接缓存当前不能加载的bean，
+		// inCreationCheckExclusions 直接缓存当前不能加载的bean，
 		// 主要用在web容器的拦截器里，所以这里可以忽略，因为肯定是不存在的
 		// 把 beanName 放入 singletonsCurrentlyInCreation 正在创建的bean的名字列表里
 		// 正常情况下来不到这一步，这种情况是：两个线程同时从三级缓存中获取bean 但是都没获取到
