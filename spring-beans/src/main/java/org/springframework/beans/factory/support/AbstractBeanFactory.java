@@ -204,12 +204,12 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
-		//获取到beanName之后
+		// 获取到beanName之后
 		// 尝试从单例缓存集合里获取bean实例
 		Object sharedInstance = getSingleton(beanName);
-		//如果先前已经创建过单例Bean的实例，并且调用的getBean方法传入的参数为空
-		//则执行if里面的逻辑
-		//args之所以要求为空 是因为如果有args 则需要赋值给bean实例的属性，因此无法直接返回
+		// 如果先前已经创建过单例Bean的实例，并且调用的getBean方法传入的参数为空
+		// 则执行if里面的逻辑
+		// args之所以要求为空 是因为如果有args 则需要赋值给bean实例的属性，因此无法直接返回
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
 				//如果Bean还在创建中，则说明是循环引用
@@ -287,8 +287,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				// 获取当前Bean所有依赖Bean的名称
 				String[] dependsOn = mbd.getDependsOn();
 				// 如果当前Bean设置了dependsOn的属性
-				//depends-on用来指定Bean初始化及销毁时的顺序
-				//<bean id=a Class="com.imooc.A" depends-on="b" />
+				// depends-on用来指定Bean初始化及销毁时的顺序
+				// <bean id=a Class="com.imooc.A" depends-on="b" />
 				// <bean id=b Class="com.imooc.B" />
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
@@ -319,7 +319,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				// Create bean instance.
 				//如果BeanDefinition为单例
 				if (mbd.isSingleton()) {
-					//这里使用了一个匿名内部类，创建Bean实例对象，并且注册给所依赖的对象
+					// 这里使用了一个匿名内部类，创建Bean实例对象，并且注册给所依赖的对象
 					// 匿名内部类为ObjectFactory 主要实现了 ObjectFactory#getObject()方法的逻辑
 					// 这里先执行 getSingleton() 方法 后执行匿名内部类的方法 createBean();
 					sharedInstance = getSingleton(beanName, () -> {
@@ -1855,7 +1855,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			if (!(beanInstance instanceof FactoryBean)) {
 				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
 			}
-			// 传入的mbd为null
+			// 传入的mbd 肯定不为null
 			if (mbd != null) {
 				mbd.isFactoryBean = true;
 			}
@@ -1872,7 +1872,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		}
 		// FactoryBean 创建出bean实例返回
 		Object object = null;
-		// 显然传入的mbd为null，走else流程
+		// 显然传入的mbd不为null
 		if (mbd != null) {
 			mbd.isFactoryBean = true;
 		}

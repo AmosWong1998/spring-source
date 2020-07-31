@@ -5,10 +5,13 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@Scope(value = "prototype")
 public class Company {
-//	private Staff staff;
-//	@Autowired
-//	public Company(Staff staff){
-//		this.staff = staff;
-//	}
+    private Staff staff;
+
+    // 构造器方式注入
+    @Autowired
+    public Company(Staff staff) {
+        this.staff = staff;
+    }
 }

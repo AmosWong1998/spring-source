@@ -16,63 +16,11 @@
 
 package org.springframework.beans.factory.support;
 
-import java.io.IOException;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-import java.lang.annotation.Annotation;
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Method;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-
-import javax.inject.Provider;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.TypeConverter;
-import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanCurrentlyInCreationException;
-import org.springframework.beans.factory.BeanDefinitionStoreException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
-import org.springframework.beans.factory.BeanFactoryUtils;
-import org.springframework.beans.factory.BeanNotOfRequiredTypeException;
-import org.springframework.beans.factory.CannotLoadBeanClassException;
-import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.InjectionPoint;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
-import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.SmartFactoryBean;
-import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanDefinitionHolder;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.config.DependencyDescriptor;
-import org.springframework.beans.factory.config.NamedBeanHolder;
+import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.config.*;
 import org.springframework.core.OrderComparator;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.MergedAnnotation;
@@ -80,11 +28,21 @@ import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
 import org.springframework.core.log.LogMessage;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.CompositeIterator;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
+import org.springframework.util.*;
+
+import javax.inject.Provider;
+import java.io.*;
+import java.lang.annotation.Annotation;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Spring's default implementation of the {@link ConfigurableListableBeanFactory}
@@ -1302,6 +1260,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         InjectionPoint previousInjectionPoint = ConstructorResolver.setCurrentInjectionPoint(descriptor);
         try {
             // 该方法最终调用了 beanFactory.getBean(String, Class)，从容器中获取依赖
+            // resolveShortcut() 获取到属性定义值的快捷方式 默认没有实现
             Object shortcut = descriptor.resolveShortcut(this);
             // 如果容器缓存中存在所需依赖，这里进行短路路操作，提前结束依赖解析逻辑
             if (shortcut != null) {
@@ -1311,6 +1270,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             Class<?> type = descriptor.getDependencyType();
             // 处理 @value 注解
             Object value = getAutowireCandidateResolver().getSuggestedValue(descriptor);
+            // if语句：视情况对不同类型的value做类型转换
             if (value != null) {
                 if (value instanceof String) {
                     String strVal = resolveEmbeddedValue((String) value);
@@ -1328,19 +1288,20 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                             converter.convertIfNecessary(value, type, descriptor.getMethodParameter()));
                 }
             }
-            //如果标识@Autowired注解的成员变量是复合类型，如Array,Collection,Map,
+            // 如果标识@Autowired注解的成员变量是复合类型，如Array,Collection,Map,
             // 从这个方法获取@Autowired里的值
+            // 对Stream、集合类型、map类型的值进行解析
             Object multipleBeans = resolveMultipleBeans(descriptor, beanName, autowiredBeanNames, typeConverter);
             if (multipleBeans != null) {
                 return multipleBeans;
             }
-            //	如果标识@Autowired注解的属性是非复合类型，
+            // 如果标识@Autowired注解的属性是非复合类型，
             // 从这个方法获取@Autowired里的值
             Map<String, Object> matchingBeans = findAutowireCandidates(beanName, type, descriptor);
             if (matchingBeans.isEmpty()) {
                 // 没有找到，检验 @autowire  的 require 是否为 true
                 if (isRequired(descriptor)) {
-                    // 如果 @autowire 的 require 属性为 true ，但是没有找到相应的匹配项，则抛出异常
+                    // 如果 @autowire 的 require 属性为 tr应的匹配项，则抛出异常
                     raiseNoMatchingBeanFound(type, descriptor.getResolvableType(), descriptor);
                 }
                 return null;
@@ -1349,8 +1310,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             String autowiredBeanName;
             Object instanceCandidate;
 
+            // 如果有多个符合条件的类型，会选择一个最佳的
             if (matchingBeans.size() > 1) {
-                //如果被@Autowired标记的有两个以上同样的类型，
+                // 如果被@Autowired标记的有两个以上同样的类型，
                 // 就需要依据@Primary以及@Priority注解标签选择了
                 autowiredBeanName = determineAutowireCandidate(matchingBeans, descriptor);
                 if (autowiredBeanName == null) {
@@ -1368,7 +1330,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             } else {
                 // We have exactly one match.
                 Map.Entry<String, Object> entry = matchingBeans.entrySet().iterator().next();
+                // 获取对应的属性名
                 autowiredBeanName = entry.getKey();
+                // 获取属性class
                 instanceCandidate = entry.getValue();
             }
 
@@ -1376,6 +1340,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                 autowiredBeanNames.add(autowiredBeanName);
             }
             if (instanceCandidate instanceof Class) {
+                // 调用该方法去解析类的实例
                 instanceCandidate = descriptor.resolveCandidate(autowiredBeanName, type, this);
             }
             Object result = instanceCandidate;
@@ -1549,7 +1514,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             Class<?> autowiringType = classObjectEntry.getKey();
             if (autowiringType.isAssignableFrom(requiredType)) {
                 Object autowiringValue = classObjectEntry.getValue();
-                //key值是我们需要的类型
+                // key值是我们需要的类型
                 // 但value可能是ObjectFactory，如果是就得调用它的 getObject() 来获取真正的bean.
                 autowiringValue = AutowireUtils.resolveAutowiringValue(autowiringValue, requiredType);
                 if (requiredType.isInstance(autowiringValue)) {
@@ -1637,7 +1602,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         if (priorityCandidate != null) {
             return priorityCandidate;
         }
-        // Fallback
+        // Fallback 对类型进行降级，当前类型找不到了，那就去父类里面找
         for (Map.Entry<String, Object> entry : candidates.entrySet()) {
             String candidateName = entry.getKey();
             Object beanInstance = entry.getValue();

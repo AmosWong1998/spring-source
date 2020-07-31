@@ -445,7 +445,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		// Fall back to class name as cache key, for backwards compatibility with custom callers.
 		String cacheKey = (StringUtils.hasLength(beanName) ? beanName : clazz.getName());
 		// Quick check on the concurrent map first, with minimal locking.
-		//从容器中查找是否有给定类的autowire相关注解元信息
+		// 从容器中查找是否有给定类的autowire相关注解元信息
 		// 判断先前有没有创建过该bean的injectionMetadata对象
 		InjectionMetadata metadata = this.injectionMetadataCache.get(cacheKey);
 		if (InjectionMetadata.needsRefresh(metadata, clazz)) {
@@ -652,8 +652,9 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 			}
 			//没有缓存
 			else {
-				//创建一个成员变量的依赖描述符实例
+				//创建一个成员变量的依赖描述符实例 这里包装的是属性
 				DependencyDescriptor desc = new DependencyDescriptor(field, this.required);
+				// 注册上宿主的类名
 				desc.setContainingClass(bean.getClass());
 				Set<String> autowiredBeanNames = new LinkedHashSet<>(1);
 				Assert.state(beanFactory != null, "No BeanFactory available");

@@ -17,6 +17,6 @@ public class HelloServiceImpl implements HelloService {
 
 	@Override
 	public void JustWantToThrowException() {
-//		throw  new RuntimeException("hello exception");
+		throw  new RuntimeException("hello exception");
 	}
 }

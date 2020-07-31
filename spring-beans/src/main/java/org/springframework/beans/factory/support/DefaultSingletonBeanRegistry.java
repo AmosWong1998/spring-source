@@ -185,41 +185,41 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
-		//尝试从一级缓存里面获取完备的Bean
-		//singletonObjects为ConcurrentHashMap, 通过beanName为key查找单例实例(最终形态, 完备的Bean实例)
-		//singletonObjects为单例缓存的一级缓存
+		// 尝试从一级缓存里面获取完备的Bean
+		// singletonObjects为ConcurrentHashMap, 通过beanName为key查找单例实例(最终形态, 完备的Bean实例)
+		// singletonObjects为单例缓存的一级缓存
 		Object singletonObject = this.singletonObjects.get(beanName);
 		//如果完备的单例还没有创建出来，创建中的Bean的名字会被保存在singletonsCurrentlyInCreation中
 		//因此看看是否正在创建
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
-			//尝试给一级缓存对象加锁，因为接下来就要对缓存对象操作了
+			// 尝试给一级缓存对象加锁，因为接下来就要对缓存对象操作了
 			// 加锁是为了保证三级缓存的一致性，不加锁可能导致缓存不一致
 			synchronized (this.singletonObjects) {
-				//由于给singletonObjects上锁了, 所以以下的操作都是线程安全的, 并且是同步的
-				//earlySingletonObjects 与后面的 singletonFactories 都为HashMap而不是ConcurrentHashMap(为了提高性能)
+				// 由于给singletonObjects上锁了, 所以以下的操作都是线程安全的, 并且是同步的
+				// earlySingletonObjects 与后面的 singletonFactories 都为HashMap而不是ConcurrentHashMap(为了提高性能)
 
-				//尝试从二级缓存earlySingletonObjects这个存储还没进行属性添加操作的Bean实例缓存中获取
+				// 尝试从二级缓存earlySingletonObjects这个存储还没进行属性添加操作的Bean实例缓存中获取
 				// 如果从二级缓存中获取到bean 则直接返回。为什么要返回二级缓存中不完备的bean？是为了解决循环依赖
 				singletonObject = this.earlySingletonObjects.get(beanName);
 
 				// 如果还没有获取到并且第二个参数为true，为true则表示bean允许被循环引用
 				if (singletonObject == null && allowEarlyReference) {
 
-					//从三级缓存singletonFactories这个ObjectFactory实例的缓存里尝试获取创建此Bean的单例工厂实例
-					//ObjectFactory为对象工厂, ObjectFactory该接口也只提供了一个getObject()方法
-					//这样看和FactoryBean很类似, 那为什么不直接用一个呢
-					//主要是为了区分用户使用的, 和框架本身使用的
+					// 从三级缓存singletonFactories这个ObjectFactory实例的缓存里尝试获取创建此Bean的单例工厂实例
+					// ObjectFactory为对象工厂, ObjectFactory该接口也只提供了一个getObject()方法
+					// 这样看和FactoryBean很类似, 那为什么不直接用一个呢
+					// 主要是为了区分用户使用的, 和框架本身使用的
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 
-					//如果获取到工厂实例
+					// 如果获取到工厂实例
 					if (singletonFactory != null) {
-						//调用单例工厂的getObject方法返回对象实例
+						// 调用单例工厂的getObject方法返回对象实例
 						singletonObject = singletonFactory.getObject();
 						// 由于该Bean的属性还没有注入 因此先将实例放入二级缓存里
 						this.earlySingletonObjects.put(beanName, singletonObject);
-						//为了保证三级缓存 只有一级是有该实例Bean的 所以
-						//从三级缓存里移除
-						//从三级缓存中移除, 保证单例! 避免从三级缓存中调用getObject()方法 重复创建Bean
+						// 为了保证三级缓存 只有一级是有该实例Bean的 所以
+						// 从三级缓存里移除
+						// 从三级缓存中移除, 保证单例! 避免从三级缓存中调用getObject()方法 重复创建Bean
 						this.singletonFactories.remove(beanName);
 					}
 				}
@@ -265,6 +265,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				}
 				try {
 					// 调用ObjectFactory#getObject()方法去创建bean
+					// 实际上调用的是匿名方法：return createBean(beanName, mbd, args);
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true; // 设置为true 方便后续一级缓存的添加
 				}
@@ -455,8 +456,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 		synchronized (this.dependentBeanMap) {
 			// computeIfAbsent:若key对应的value为空，会将第二个参数的返回值存入并返回
-			//dependentBeanMap中存放着当前Bean被引用的Bean的集合
-			//比如当前需要实例化的是Bean的名字是userInfo,userInfo中有个Human类型的属性human，
+			// dependentBeanMap中存放着当前Bean被引用的Bean的集合
+			// 比如当前需要实例化的是Bean的名字是userInfo,userInfo中有个Human类型的属性human，
 			// 那么就有human被userInfo引用的关系 human=[userInfo]
 			Set<String> dependentBeans =
 					this.dependentBeanMap.computeIfAbsent(canonicalName, k -> new LinkedHashSet<>(8));
@@ -466,7 +467,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		}
 
 		synchronized (this.dependenciesForBeanMap) {
-			//dependenciesForBeanMap中存放的是当前Bean所依赖的Bean的集合
+			// dependenciesForBeanMap中存放的是当前Bean所依赖的Bean的集合
 			Set<String> dependenciesForBean =
 					this.dependenciesForBeanMap.computeIfAbsent(dependentBeanName, k -> new LinkedHashSet<>(8));
 			dependenciesForBean.add(canonicalName);

@@ -1,6 +1,7 @@
 package com.imooc;
 
 import com.imooc.aspect.OutSide;
+import com.imooc.controller.HelloController;
 import com.imooc.controller.HiController;
 import com.imooc.controller.WelcomeController;
 import com.imooc.entity.User;
@@ -20,6 +21,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 //@ComponentScan(basePackages = {"com.imooc.service", "com.imooc.postprocessor", "com.imooc.entity"})
 public class Entrance {
 
+
     public static void main1(String[] args) {
         ApplicationContext applicationContext = new AnnotationConfigApplicationContext(Entrance.class);
         System.out.println("Hello 我正在学习Spring Framework");
@@ -35,7 +37,7 @@ public class Entrance {
 
     }
 
-    public static void main0(String[] args) {
+    public static void main(String[] args) {
         ApplicationContext annotationApplicationContext = new AnnotationConfigApplicationContext(Entrance.class);
         System.out.println("AOP--------------------------------------");
         HiService hiService = (HiService) annotationApplicationContext.getBean("hiServiceImpl");
@@ -59,7 +61,7 @@ public class Entrance {
 //        HiController hiController = (HiController) annotationApplicationContext.getBean("hiController");
 //        hiController.handleRequest();
         HiController hiController = (HiController) annotationApplicationContext.getBean("hiController");
-        ((LittleUniverse) hiController).burningup();
+        ((LittleUniverse) hiController).burningUp();
 
     }
 
@@ -73,7 +75,7 @@ public class Entrance {
 
     }
 
-    public static void main(String[] args) {
+    public static void main4(String[] args) {
         ApplicationContext applicationContext = new AnnotationConfigApplicationContext(Entrance.class);
         String[] beanDefinitionNames = applicationContext.getBeanDefinitionNames();
         for (String beanDefinitionName : beanDefinitionNames) {
@@ -90,4 +92,15 @@ public class Entrance {
         System.out.println("创建的对象：" + user5);
     }
 
+    public static void main5(String[] args) {
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(Entrance.class);
+        System.out.println("AOP IS COMING");
+
+        HelloController helloController = (HelloController) applicationContext.getBean("helloController");
+        helloController.handleRequest();
+
+        HiController hiController = (HiController) applicationContext.getBean("hiController");
+        hiController.handleRequest();
+
+    }
 }

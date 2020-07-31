@@ -16,12 +16,8 @@
 
 package org.springframework.aop.framework.autoproxy;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanCurrentlyInCreationException;
@@ -29,6 +25,9 @@ import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Helper for retrieving standard Spring Advisors from a BeanFactory,
@@ -85,7 +84,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 		for (String name : advisorNames) {
 			//isEligibleBean()该方法默认返回true, 留给用户筛选加载Advisor的口子
 			if (isEligibleBean(name)) {
-				// 创建中的 bean 会被忽略
+				// 创建中的 bean 会被忽略，先判断当前的Advisor是否正在创建中
 				//如果暂时忽略掉了, 后续当这个正在创建的Advisor实例被创建出来了之后, 还有机会加载进来么?
 				//因为postProcessorBeforeInitiation是针对每一个Bean都去执行的
 				//也就是shouldSkip()方法会针对每一个Bean都会去执行
