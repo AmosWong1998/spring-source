@@ -16,10 +16,10 @@
 
 package org.springframework.aop.framework;
 
+import org.springframework.aop.SpringProxy;
+
 import java.io.Serializable;
 import java.lang.reflect.Proxy;
-
-import org.springframework.aop.SpringProxy;
 
 /**
  * Default {@link AopProxyFactory} implementation, creating either a CGLIB proxy
@@ -48,6 +48,24 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 
 	@Override
 	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+		/*
+		 * 下面的三个条件简单分析一下：
+		 *
+		 *   条件1：config.isOptimize() - 是否需要优化，这个属性没怎么用过，
+		 *         为true时：如果Bean有接口就直接使用JDK动态代理，没有接口就使用CGLIB
+		 *   条件2：config.isProxyTargetClass() - 检测 proxyTargetClass 的值，
+		 *         前面的代码会设置这个值
+		 *   条件3：hasNoUserSuppliedProxyInterfaces(config)
+		 *         - 目标 bean 是否实现了接口
+		 * 当proxyTargetClass为true（前面设置的）时 就会优先使用CGLIB进行代理
+		 *
+		 * 如果被代理的目标类实现了一个或多个自定义的接口，那么就会使用 JDK 动态代理，
+		 * 如果没有实现任何接口，会使用 CGLIB 实现代理，
+		 * 如果设置了 proxy-target-class="true"，那么都会使用 CGLIB。
+		 *
+		 * JDK 动态代理基于接口，所以只有接口中的方法会被增强，
+		 * 而 CGLIB 基于类继承，需要注意就是如果方法使用了 final 修饰，或者是 private 方法，是不能被增强的。
+		 */
 		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
 			Class<?> targetClass = config.getTargetClass();
 			if (targetClass == null) {

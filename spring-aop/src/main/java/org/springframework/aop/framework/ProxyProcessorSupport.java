@@ -16,8 +16,6 @@
 
 package org.springframework.aop.framework;
 
-import java.io.Closeable;
-
 import org.springframework.beans.factory.Aware;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.DisposableBean;
@@ -26,6 +24,8 @@ import org.springframework.core.Ordered;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
+
+import java.io.Closeable;
 
 /**
  * Base class with common functionality for proxy processors, in particular
@@ -115,13 +115,15 @@ public class ProxyProcessorSupport extends ProxyConfig implements Ordered, BeanC
 				break;
 			}
 		}
+		// 存在合理的接口，后面使用JDK进行代理
 		if (hasReasonableProxyInterface) {
 			// Must allow for introductions; can't just set interfaces to the target's interfaces only.
-			//不管接口是否合理，都将其添加进去
+			// 不管接口是否合理，都将其添加进去
 			for (Class<?> ifc : targetInterfaces) {
 				proxyFactory.addInterface(ifc);
 			}
 		}
+		// 不存在合理的接口，此时设置为true 后面就会使用CGLIB进行代理
 		else {
 			proxyFactory.setProxyTargetClass(true);
 		}

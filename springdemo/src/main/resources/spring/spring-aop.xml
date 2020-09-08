@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="userServiceImpl" class="pers.amos.aop.service.impl.UserServiceImpl"/>
+	<bean id="orderServiceImpl" class="pers.amos.aop.service.impl.OrderServiceImpl"/>
+
+	<!--定义两个advice-->
+	<bean id="logArgsAdvice" class="pers.amos.aop.advice.LogArgsAdvice"/>
+	<bean id="logResultAdvice" class="pers.amos.aop.advice.LogResultAdvice"/>
+
+	<!--定义两个advisor-->
+	<!--记录create*方法的传参-->
+	<bean id="logArgsAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
+		<property name="advice" ref="logArgsAdvice"/>
+		<property name="pattern" value="pers.amos.aop.service.*.create.*"/>
+	</bean>
+	<!--记录query*方法的传参-->
+	<bean id="logResultAdvisor" class="org.springframework.aop.support.RegexpMethodPointcutAdvisor">
+		<property name="advice" ref="logResultAdvice"/>
+		<property name="pattern" value="pers.amos.aop.service.*.query.*"/>
+	</bean>
+
+	<!--定义DefaultAdvisorAutoProxyCreator-->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>
+</beans>
+

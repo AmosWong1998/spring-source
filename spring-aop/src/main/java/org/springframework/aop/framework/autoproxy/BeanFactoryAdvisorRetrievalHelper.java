@@ -62,32 +62,44 @@ public class BeanFactoryAdvisorRetrievalHelper {
 	 * ignoring FactoryBeans and excluding beans that are currently in creation.
 	 * @return the list of {@link org.springframework.aop.Advisor} beans
 	 * @see #isEligibleBean
+	 *
+	 * 1.从容器中查找所有类型为 Advisor 的 bean 对应的名称
+	 * 2.遍历 advisorNames，并从容器中获取对应的 bean
 	 */
 	public List<Advisor> findAdvisorBeans() {
 		// Determine list of advisor bean names, if not cached already.
 		// 先尝试从缓存中获取容器中所有 Advisor bean 的名称
+		// cachedAdvisorBeanNames 是 advisor 名称的缓存
 		String[] advisorNames = this.cachedAdvisorBeanNames;
+		/*
+		 * 如果 cachedAdvisorBeanNames 为空，这里到容器中查找，
+		 * 并设置缓存，后续直接使用缓存即可
+		 */
 		if (advisorNames == null) {
 			// Do not initialize FactoryBeans here: We need to leave all regular beans
 			// uninitialized to let the auto-proxy creator apply to them!
 			// 如果缓存为空，尝试从容器以及其父容器分析得到所有 Advisor bean 的名称
+			// 从容器中查找 Advisor 类型 bean 的名称
 			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 					this.beanFactory, Advisor.class, true, false);
 			// 添加进缓存
 			this.cachedAdvisorBeanNames = advisorNames;
 		}
+		// 没有找到，返回空的集合
 		if (advisorNames.length == 0) {
 			return new ArrayList<>();
 		}
 
 		List<Advisor> advisors = new ArrayList<>();
+		// 遍历 advisorNames
 		for (String name : advisorNames) {
 			//isEligibleBean()该方法默认返回true, 留给用户筛选加载Advisor的口子
 			if (isEligibleBean(name)) {
 				// 创建中的 bean 会被忽略，先判断当前的Advisor是否正在创建中
-				//如果暂时忽略掉了, 后续当这个正在创建的Advisor实例被创建出来了之后, 还有机会加载进来么?
-				//因为postProcessorBeforeInitiation是针对每一个Bean都去执行的
-				//也就是shouldSkip()方法会针对每一个Bean都会去执行
+				// 如果暂时忽略掉了, 后续当这个正在创建的Advisor实例被创建出来了之后, 还有机会加载进来么?
+				// 因为postProcessorBeforeInitiation是针对每一个Bean都去执行的
+				// 也就是shouldSkip()方法会针对每一个Bean都会去执行
+				// 忽略正在创建中的 advisor bean
 				if (this.beanFactory.isCurrentlyInCreation(name)) {
 					if (logger.isTraceEnabled()) {
 						logger.trace("Skipping currently created advisor '" + name + "'");
@@ -97,6 +109,10 @@ public class BeanFactoryAdvisorRetrievalHelper {
 					try {
 						//尝试从容器创建, 或者从缓存中获取对应Advisor的Bean实例
 						//并将其添加到advisors列表中
+						/*
+						 * 调用 getBean 方法从容器中获取名称为 name 的 bean，
+						 * 并将 bean 添加到 advisors 中
+						 */
 						advisors.add(this.beanFactory.getBean(name, Advisor.class));
 					}
 					catch (BeanCreationException ex) {

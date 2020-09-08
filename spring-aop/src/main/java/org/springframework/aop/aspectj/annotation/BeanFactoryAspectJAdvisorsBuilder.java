@@ -78,6 +78,13 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 	 * <p>Creates a Spring Advisor for each AspectJ advice method.
 	 * @return the list of {@link org.springframework.aop.Advisor} beans
 	 * @see #isEligibleBean
+	 *
+	 * 解析 @Aspect 注解的过程
+	 *
+	 * 1.获取容器中所有 bean 的名称（beanName）
+	 * 2.遍历上一步获取到的 bean 名称数组，并获取当前 beanName 对应的 bean 类型（beanType）
+	 * 3.根据 beanType 判断当前 bean 是否是一个的 Aspect 注解类，若不是则不做任何处理
+	 * 4.调用 advisorFactory.getAdvisors 获取通知器
 	 */
 	public List<Advisor> buildAspectJAdvisors() {
 		//从缓存中获取
@@ -122,9 +129,10 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 								//创建MetadataAwareAspectInstanceFactory实例
 								MetadataAwareAspectInstanceFactory factory =
 										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
-								//Aspect里面的advice和pointcut被拆分成一个个的advisor，
-								// advisor里的advice和pointcut是1对1的关系
-								// advisorFactory负责Advisor的解析与创建
+								/* Aspect里面的advice和pointcut被拆分成一个个的advisor，
+								   advisor里的advice和pointcut是1对1的关系
+								   advisorFactory负责Advisor的解析与创建
+								   获取通知器 */
 								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
 								//如果bean(HiAspect)在容器里面是单例的
 								if (this.beanFactory.isSingleton(beanName)) {
