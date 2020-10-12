@@ -16,21 +16,8 @@
 
 package org.springframework.context.support;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.CachedIntrospectionResults;
 import org.springframework.beans.factory.BeanFactory;
@@ -40,29 +27,8 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.support.ResourceEditorRegistrar;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.EmbeddedValueResolverAware;
-import org.springframework.context.EnvironmentAware;
-import org.springframework.context.HierarchicalMessageSource;
-import org.springframework.context.LifecycleProcessor;
-import org.springframework.context.MessageSource;
-import org.springframework.context.MessageSourceAware;
-import org.springframework.context.MessageSourceResolvable;
-import org.springframework.context.NoSuchMessageException;
-import org.springframework.context.PayloadApplicationEvent;
-import org.springframework.context.ResourceLoaderAware;
-import org.springframework.context.event.ApplicationEventMulticaster;
-import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.ContextStartedEvent;
-import org.springframework.context.event.ContextStoppedEvent;
-import org.springframework.context.event.SimpleApplicationEventMulticaster;
+import org.springframework.context.*;
+import org.springframework.context.event.*;
 import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.context.weaving.LoadTimeWeaverAware;
 import org.springframework.context.weaving.LoadTimeWeaverAwareProcessor;
@@ -81,6 +47,11 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Abstract implementation of the {@link org.springframework.context.ApplicationContext}
@@ -536,34 +507,60 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			//告诉子类启动refreshBeanFactory()方法，Bean定义资源文件的载入从
 			//子类的refreshBeanFactory()方法启动，里面有抽象方法
 			//针对xml配置，最终创建内部容器，该容器负责 Bean 的创建与管理，此步会进行BeanDefinition的注册
+
+			// 把拿到的beanFactory做一些准备，这里其实没啥逻辑，同学们感兴趣的可以看下
+			// 但是这个方法也是一个protected的方法，
+			// 也就是说我们如果实现自己的spring启动类/或者spring团队需要写一个新的spring启动类的时候
+			// 是可以在beanFactory获取之后做一些事情的，算是一个钩子
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// 注册一些容器中需要的系统Bean.例如classloader，beanfactoryPostProcessor等
+			// 注册一些容器中需要的系统Bean.例如classloader，beanFactoryPostProcessor等
+			// 这也是一个钩子，在处理beanFactory前允许子类做一些事情
 			prepareBeanFactory(beanFactory);
 
 			try {
 				//允许容器的子类去注册postProcessor  ，钩子方法
+				// 这也是一个钩子，在处理beanFactory前允许子类做一些事情
 				postProcessBeanFactory(beanFactory);
 
 				// 激活在容器中注册为bean的BeanFactoryPostProcessors
 				//对于注解容器，org.springframework.context.annotation.ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry
 				//方法扫描应用中所有BeanDefinition并注册到容器之中
+
+				// 实例化并且调用factoryPostProcessor的方法，
+				// 我们@Compoment等注解的收集处理主要就是在这里做的
+				// 有一个ConfigurationClassPostProcessor专门用来做这些注解支撑的工作
+				// 这里的逻辑之前也讲过了
+				// 那么其实我们可以说，到这里为止，我们的beanDefinition的收集（注解/xml/其他来源...）
+				// 注册（注册到beanFactory的beanDefinitionMap、beanDefinitionNames）容器
+				// 工作基本就全部完成了
 				invokeBeanFactoryPostProcessors(beanFactory);
 
+				// 从这里开始，我们就要专注bean的实例化了
+				// 所以我们需要先实例化并注册所有的beanPostProcessor
+				// 因为beanPostProcessor主要就是在bean实例化过程中，做一些附加操作的（埋点）
+				// 这里的流程也不再讲了，感兴趣的同学可以自己看一下，
+				// 这个流程基本跟FactoryPostProcessor的初始化是一样的，
+				// 排序，创建实例，然后放入一个list --> AbstractBeanFactory#beanPostProcessors
 				// 注册拦截bean创建过程的BeanPostProcessor
 				registerBeanPostProcessors(beanFactory);
 
 				// 找到“messageSource”的Bean提供给ApplicationContext使用，
 				// 使得ApplicationContext具有国际化能力。
+
+				// 初始化一些国际化相关的组件，这一块我没有去详细了解过（主要是暂时用不到...）
+				// 之后如果有时间也可以单独拉个博文来讲吧
 				initMessageSource();
 
 				// 初始化ApplicationEventMulticaster该类作为事件发布者，
 				// 可以存储所有事件监听者信息，并根据不同的事件，通知不同的事件监听者。
+				// 初始化事件多播器，本篇不讲
 				initApplicationEventMulticaster();
 
 				// 预留给 AbstractApplicationContext 的子类用于初始化其他特殊的 bean，
 				// 该方法需要在所有单例 bean 初始化之前调用
 				// 比如Web容器就会去初始化一些和主题展示相关的Bean（ThemeSource）
+				// 也是个钩子方法，给子类创建一下特殊的bean
 				onRefresh();
 
 				// 注册监听器（检查监听器的bean并注册它们）
@@ -573,11 +570,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// 设置自定义AOP相关的类LoadTimeWeaverAware，
 				// 清除临时的ClassLoader
 				// ，实例化所有的类（懒加载的类除外）
+				// !!!实例化所有的、非懒加载的单例bean
 				finishBeanFactoryInitialization(beanFactory);
 
 				// 初始化容器的生命周期事件处理器，（默认使用DefaultLifecycleProcessor），调用扩展了SmartLifecycle接口的start方法
 				// 当Spring容器加载所有bean并完成初始化之后，会接着回调实现该接口的类中对应的方法（start()方法）
 				// 并发布容器刷新完毕事件ContextRefreshedEvent给对应的事件监听者
+				// 初始化结束，清理资源，发送事件
 				finishRefresh();
 			}
 
@@ -588,11 +587,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				}
 
 				// Destroy already created singletons to avoid dangling resources.
-				//销毁已创建的Bean
+				// 销毁已经注册的单例bean
 				destroyBeans();
 
 				// Reset 'active' flag.
-				//取消refresh操作，重置容器的同步标识
+				// 修改容器状态
 				cancelRefresh(ex);
 
 				// Propagate exception to caller.

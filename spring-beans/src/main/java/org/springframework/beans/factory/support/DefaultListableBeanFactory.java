@@ -839,18 +839,24 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
         // Iterate over a copy to allow for init methods which in turn register new bean definitions.
         // While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+        // 我们之前注册beanDefinition的时候，有把所有的beanName收集到这个beanDefinitionNames容器
+        // 这里我们就用到了
         List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
         // Trigger initialization of all non-lazy singleton beans...
-        //逐个遍历注册好的BeanDefinition的名字
-        //根据名字获取到与之相对应的BeanDefinition实例
+        // 逐个遍历注册好的BeanDefinition的名字
+        // 根据名字获取到与之相对应的BeanDefinition实例
+        // 循环所有的已注册的beanName
         for (String beanName : beanNames) {
             //RootBeanDefinition来承接获取到的合并过后的BeanDefinition实例
             //getMergedLocalBeanDefinition(beanName);兼容各种BeanDefinition
+            // 获取合并后的beanDefinition，简单来讲，我们的beanDefinition是可以存在继承关系的
+            // 比如xml配置从的parent属性，这种时候，我们需要结合父子beanDefinition的属性，生成一个新的
+            // 合并的beanDefinition，子beanDefinition中的属性会覆盖父beanDefinition的属性，
+            // 并且这是一个递归的过程（父还可以有父），不过这个功能用的实在不多，就不展开了，
+            // 同学们有兴趣可以自行看一下，这里可以就理解为拿到对应的beanDefinition就好了
             RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
-            //确保该Bean不是抽象的
-            //确保该Bean是单例的
-            //确保该Bean不是延迟加载的
+            // 非抽象（xml有一个abstract属性，而不是说这个类不是一个抽象类）、单例的、非懒加载的才需要实例化
             if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
                 //都满足的话, 开始实例化
                 //首先看一下是否是FactoryBean
@@ -880,21 +886,17 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                 } else {
                     //最终都会执行该方法
                     //将Bean创建出来
+                    // !!!我们正常普通的bean会走到这个流程，这里就把这个bean实例化并且管理起来的
+                    // 这里是获取一个bean，如果获取不到，则创建一个
                     getBean(beanName);
                 }
             }
         }
 
         // Trigger post-initialization callback for all applicable beans...
-        // bean已完全处理完了
-        // @EventListener标注的方法被DefaultEventListenerFactory包装成ApplicationListenerMethodAdapter
-        //@EventListener中的classes就是事件对象
-        //ApplicationListenerMethodApdapter注册到ApplicationContext中。
-        //等待是事件源发布通知
-        //通知后执行的逻辑就是标注@EventListener的方法的逻辑
+        // 所以的bean实例化之后，还会有一些处理
         for (String beanName : beanNames) {
-            //getSingleton()方法主要是从容器的缓存中获取实例
-            //防止重复创建
+            // 获取到这个bean实例
             Object singletonInstance = getSingleton(beanName);
             //获取到了之后, 检查其是否实现了SmartInitializingSingleton接口
             //SmartInitializingSingleton该接口作用为, 批量处理初始化好的Singleton的Bean实例
@@ -902,6 +904,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                 final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
                 if (System.getSecurityManager() != null) {
                     AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                        // 会调用它的afterSingletonsInstantiated方法
+                        // 这是最外层的一个钩子了，平常其实用的不多
+                        // 不过@Listener的发现是在这里做的
                         smartSingleton.afterSingletonsInstantiated();
                         return null;
                     }, getAccessControlContext());

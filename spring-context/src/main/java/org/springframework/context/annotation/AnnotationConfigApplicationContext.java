@@ -16,8 +16,6 @@
 
 package org.springframework.context.annotation;
 
-import java.util.function.Supplier;
-
 import org.springframework.beans.factory.config.BeanDefinitionCustomizer;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -25,6 +23,8 @@ import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.util.function.Supplier;
 
 /**
  * Standalone application context, accepting <em>component classes</em> as input &mdash;
@@ -86,11 +86,11 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * {@link Configuration @Configuration} classes
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
-		//调用默认无参构造器,主要初始化AnnotatedBeanDefinitionReader
+		// 调用默认无参构造器,主要初始化AnnotatedBeanDefinitionReader
 		// 以及路径扫描器ClassPathBeanDefinitionScanner
 		this();
-		//把传入的Class进行注册,Class既可以有@Configuration注解,也可以没有@Configuration注解
-		//如何注册委托给了 org.springframework.context.annotation.AnnotatedBeanDefinitionReader.register 方法进行注册
+		// 把传入的Class进行注册,Class既可以有@Configuration注解,也可以没有@Configuration注解
+		// 如何注册委托给了 org.springframework.context.annotation.AnnotatedBeanDefinitionReader.register 方法进行注册
 		// 包装传入的Class 生成 BeanDefinition , 注册到BeanDefinitionRegistry
 		register(componentClasses);
 		refresh();
@@ -104,7 +104,10 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 */
 	public AnnotationConfigApplicationContext(String... basePackages) {
 		this();
+		// 扫描目标包，收集并注册beanDefinition
 		scan(basePackages);
+		// 这里就调用到我们大名鼎鼎的refresh方法啦
+		// 这个方法的逻辑是在AbstractApplicationContext类中的，也是一个典型的模板方法：
 		refresh();
 	}
 

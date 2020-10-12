@@ -156,6 +156,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	@Override
 	public Object getBean(String name) throws BeansException {
+		// 调用了doGetBean
+		// 说一下这种方式吧，其实我们能在很多框架代码里看到这种方式
+		// 就是会有一个参数最全的，可以最灵活使用的方法，用来处理我们的业务
+		// 然后会对不同的使用方，提供一些便于使用的类似于门面的方法，这些方法会简化一些参数，使用默认值填充
+		// 或者实际业务可以很灵活，但是不打算完全开放给使用方的时候，也可以使用类似的模式
 		return doGetBean(name, null, null, false);
 	}
 
@@ -245,6 +250,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			// 从当前容器中找不到指定名称的bean,此时递归去parentFactory查找
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
+				// 如果父容器不为空且当前容器没有这个beanName对应的beanDefinition
+				// 则尝试从父容器获取（因为当期容器已经确定没有了）
+				// 下面就是调用父容器的getBean了
 				// Not found -> check parent.
 				// 主要针对FactoryBean，将Bean的&重新加上
 				String nameToLookup = originalBeanName(name);
@@ -285,12 +293,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Guarantee initialization of beans that the current bean depends on.
 				// 获取当前Bean所有依赖Bean的名称
+				// 拿到这个bean的所有依赖的bean
 				String[] dependsOn = mbd.getDependsOn();
 				// 如果当前Bean设置了dependsOn的属性
 				// depends-on用来指定Bean初始化及销毁时的顺序
 				// <bean id=a Class="com.imooc.A" depends-on="b" />
 				// <bean id=b Class="com.imooc.B" />
 				if (dependsOn != null) {
+					// 如果依赖不为空，需要先循环实例化依赖
 					for (String dep : dependsOn) {
 						//校验该依赖是否已经注册给当前 bean,注意这里传入的key是当前的bean名称
 						//这里主要是判断是否有以下这种类型的依赖：(Spring不支持显式定义循环依赖）
@@ -316,9 +326,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					}
 				}
 
+				// 这里开始真正创建bean实例的流程了
 				// Create bean instance.
 				//如果BeanDefinition为单例
 				if (mbd.isSingleton()) {
+					// 如果是单例的bean（当然我们启动的时候会实例化的也就是单例bean了），这里会进行创建
+					// 注意这里也是一个getSingleton方法，跟之前那个getSingleton方法差不多，不过这里是
+					// 如果获取不到就会使用这个labdma的逻辑创建一个，
+					// 也就是说我的的createBean方法是真正创建bean实例的方法，这里我们之后会重点看
 					// 这里使用了一个匿名内部类，创建Bean实例对象，并且注册给所依赖的对象
 					// 匿名内部类为ObjectFactory 主要实现了 ObjectFactory#getObject()方法的逻辑
 					// 这里先执行 getSingleton() 方法 后执行匿名内部类的方法 createBean();
@@ -337,6 +352,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 						}
 					});
 					// 如果是普通bean，直接返回，是FactoryBean，返回他的getObject
+					// 通过这个bean实例获取用户真正需要的bean实例
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
 
@@ -344,6 +360,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				else if (mbd.isPrototype()) {
 					// It's a prototype -> create a new instance.
 					//Prototype每次都会创建一个新的对象
+					// 如果是多例的bean
+					// 那么每次获取都是创建一个新的bean实例
 					Object prototypeInstance = null;
 					try {
 						//默认的功能是注册当前创建的prototype对象为正在创建中
@@ -362,6 +380,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				//要创建的Bean既不是单态模式，也不是原型模式，则根据Bean定义资源中
 				//配置的生命周期范围，选择实例化Bean的合适方法，这种在Web应用程序中
 				//比较常用，如：request、session、application等生命周期
+
+				// spring是允许我们自定义scope的，这里是自定义scope的逻辑
+				// 需要注意的是，spring mvc 的 session、request那些scope也是走这里的逻辑的
+				// 这里感兴趣的同学可以自行看下，暂时不讲
 				else {
 					String scopeName = mbd.getScope();
 					final Scope scope = this.scopes.get(scopeName);
