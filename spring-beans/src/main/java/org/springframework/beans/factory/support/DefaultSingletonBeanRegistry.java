@@ -238,14 +238,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "Bean name must not be null");
-		//给singletonObjects 一级缓存上锁
-		//因为后续将要对其进行修改
+		// 给singletonObjects 一级缓存上锁，因为后续将要对其进行修改
 		synchronized (this.singletonObjects) {
-			//再次尝试从一级缓存中获取实例
+			// 再次尝试从一级缓存中获取实例
 			Object singletonObject = this.singletonObjects.get(beanName);
-			//没有从一级缓存中获取到实例
+			// 没有从一级缓存中获取到实例
 			if (singletonObject == null) {
-				//singletonsCurrentlyInDestruction - > 容器是否正在销毁所有的单例
+				// singletonsCurrentlyInDestruction - > 容器是否正在销毁所有的单例
+				// 如果spring单例 bean 容器正在销毁时不允许继续创建单例 bean 的
 				if (this.singletonsCurrentlyInDestruction) {
 					throw new BeanCreationNotAllowedException(beanName,
 							"Singleton bean creation not allowed while singletons of this factory are in destruction " +
@@ -257,6 +257,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 
 				// 单例开始创建之前，先把它加入到正在创建的Bean的Set集合中
+				// 创建容器之前的钩子，这里默认会把bean那么加入到一个正在创建的 beanNameSet，
+				// 如果加入失败就代表是循环依赖了。
+				// 检测容器是  singletonsCurrentlyInCreation
 				beforeSingletonCreation(beanName); // <X>
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -264,7 +267,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
-					// 调用ObjectFactory#getObject()方法去创建bean
+					// 调用 ObjectFactory#getObject() 方法去创建bean
 					// 实际上调用的是匿名方法：return createBean(beanName, mbd, args);
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true; // 设置为true 方便后续一级缓存的添加
@@ -292,6 +295,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					// <X> bean已经创建完成了，会将beanName从正在创建的列表中移除
 					afterSingletonCreation(beanName);
 				}
+				// 如果成功创建了bean实例，需要加入singletonObjects容器
+				// 这样下次再获取就能直接中容器中拿了
 				if (newSingleton) { // 判断是否是新创建的单例，#beforeSingletonCreation() 里将该值设置为true
 					addSingleton(beanName, singletonObject);
 				}
@@ -389,7 +394,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		// 主要用在web容器的拦截器里，所以这里可以忽略，因为肯定是不存在的
 		// 把 beanName 放入 singletonsCurrentlyInCreation 正在创建的bean的名字列表里
 		// 正常情况下来不到这一步，这种情况是：两个线程同时从三级缓存中获取bean 但是都没获取到
-		// 这时候就来到这一步 后来的那个线程添加失败 直接报错
+		// 这时候就来到这一步 后来的那个线程添加失败 直接报错，一旦报错就表明发生了循环依赖了
 		if (!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.add(beanName)) {
 			throw new BeanCurrentlyInCreationException(beanName);
 		}

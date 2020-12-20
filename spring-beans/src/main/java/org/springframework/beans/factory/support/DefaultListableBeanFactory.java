@@ -839,17 +839,20 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
         // Iterate over a copy to allow for init methods which in turn register new bean definitions.
         // While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+
         // 我们之前注册beanDefinition的时候，有把所有的beanName收集到这个beanDefinitionNames容器
         // 这里我们就用到了
         List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
         // Trigger initialization of all non-lazy singleton beans...
-        // 逐个遍历注册好的BeanDefinition的名字
+        // 逐个遍历注册好的 BeanDefinition 的名字
         // 根据名字获取到与之相对应的BeanDefinition实例
+
         // 循环所有的已注册的beanName
         for (String beanName : beanNames) {
-            //RootBeanDefinition来承接获取到的合并过后的BeanDefinition实例
-            //getMergedLocalBeanDefinition(beanName);兼容各种BeanDefinition
+            // RootBeanDefinition来承接获取到的合并过后的BeanDefinition实例
+            // getMergedLocalBeanDefinition(beanName);兼容各种BeanDefinition
+
             // 获取合并后的beanDefinition，简单来讲，我们的beanDefinition是可以存在继承关系的
             // 比如xml配置从的parent属性，这种时候，我们需要结合父子beanDefinition的属性，生成一个新的
             // 合并的beanDefinition，子beanDefinition中的属性会覆盖父beanDefinition的属性，
@@ -861,8 +864,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                 //都满足的话, 开始实例化
                 //首先看一下是否是FactoryBean
                 if (isFactoryBean(beanName)) {
-                    //如果是FactoryBean就加上 '&'的前缀
-                    //然后去容器中获取FactoryBean的实例
+                    // 如果是FactoryBean就加上 '&'的前缀
+                    // 然后去容器中获取FactoryBean的实例
                     Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
                     if (bean instanceof FactoryBean) {
                         final FactoryBean<?> factory = (FactoryBean<?>) bean;
@@ -884,9 +887,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
                         }
                     }
                 } else {
-                    //最终都会执行该方法
-                    //将Bean创建出来
-                    // !!!我们正常普通的bean会走到这个流程，这里就把这个bean实例化并且管理起来的
+                    // 最终都会执行该方法
+                    // 将Bean创建出来
+
+                    // !!!我们正常普通的 bean 会走到这个流程，这里就把这个 bean 实例化并且管理起来的
                     // 这里是获取一个bean，如果获取不到，则创建一个
                     getBean(beanName);
                 }
@@ -894,12 +898,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
         }
 
         // Trigger post-initialization callback for all applicable beans...
-        // 所以的bean实例化之后，还会有一些处理
+        // 所有的 bean 实例化之后，还会有一些处理
         for (String beanName : beanNames) {
             // 获取到这个bean实例
             Object singletonInstance = getSingleton(beanName);
-            //获取到了之后, 检查其是否实现了SmartInitializingSingleton接口
-            //SmartInitializingSingleton该接口作用为, 批量处理初始化好的Singleton的Bean实例
+            // 获取到了之后, 检查其是否实现了SmartInitializingSingleton接口
+            // SmartInitializingSingleton该接口作用为, 批量处理初始化好的Singleton的Bean实例
             if (singletonInstance instanceof SmartInitializingSingleton) {
                 final SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
                 if (System.getSecurityManager() != null) {
